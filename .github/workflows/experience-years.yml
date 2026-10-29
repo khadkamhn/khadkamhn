@@ -1,0 +1,40 @@
+name: Update years of experience
+
+on:
+  schedule:
+    - cron: '0 0 1 * *'
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update years since April 2012
+        run: |
+          YEAR=$(date -u +%Y)
+          MONTH=$(date -u +%-m)
+          YEARS=$(( YEAR - 2012 ))
+          if [ "$MONTH" -lt 4 ]; then YEARS=$(( YEARS - 1 )); fi
+          sed -i -E "s|<!--EXP-->[0-9]+\+<!--/EXP-->|<!--EXP-->${YEARS}+<!--/EXP-->|" README.md
+
+      - name: Commit if changed
+        run: |
+          git diff --quiet && exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898233+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Update years of experience"
+          git push
+
+  keepalive:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Keep scheduled workflow enabled
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/experience-years.yml/enable"
